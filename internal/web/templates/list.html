@@ -1,0 +1,56 @@
+{{define "list"}}{{template "list-body" .}}{{template "list-oob" .}}{{end}}
+
+{{define "list-oob"}}
+<span id="liststate" hx-swap-oob="true">{{template "liststate" .}}</span>
+<div id="banner" hx-swap-oob="true">{{template "banner" .}}</div>
+<div id="totals" class="totals" hx-swap-oob="true">{{template "totals" .Totals}}</div>
+<nav id="sidebar" class="sidebar" aria-label="Filters" hx-sync="#list:replace" hx-swap-oob="true">{{template "sidebar-body" .}}</nav>
+{{end}}
+
+{{define "list-error"}}<div id="banner" hx-swap-oob="true">{{template "banner" .}}</div>{{end}}
+
+{{define "banner"}}{{if .Error}}<div class="error" role="alert">{{.Error}}</div>{{end}}{{end}}
+
+{{define "liststate"}}<input type="hidden" name="sort" value="{{.Query.Sort}}"><input type="hidden" name="order" value="{{.Query.Order}}"><input type="hidden" name="state" value="{{.Query.State}}"><input type="hidden" name="label" value="{{.Query.Label}}"><input type="hidden" name="tracker" value="{{.Query.Tracker}}"><input type="hidden" name="v" value="{{.Version}}">{{end}}
+
+{{define "totals"}}{{.All}} torrents{{if ne .Shown .All}}, {{.Shown}} shown{{end}} · ↓ {{speed .Down}}{{if .Limits.Down}} <span class="limit">(max {{speed .Limits.Down}})</span>{{end}} ↑ {{speed .Up}}{{if .Limits.Up}} <span class="limit">(max {{speed .Limits.Up}})</span>{{end}}{{end}}
+
+{{define "sidebar-body"}}
+<h2>Status</h2>
+<ul>{{range .Sidebar.States}}{{template "side-item" .}}{{end}}</ul>
+<h2>Labels</h2>
+<ul>{{range .Sidebar.Labels}}{{template "side-item" .}}{{end}}</ul>
+<h2>Trackers</h2>
+<ul>{{range .Sidebar.Trackers}}{{template "side-item" .}}{{end}}</ul>
+{{end}}
+
+{{define "side-item"}}<li><button type="button" class="{{if .Active}}active{{end}}" hx-get="/torrents" hx-vals="{{.Vals}}" hx-include="#filters" hx-target="#torrents" hx-swap="outerHTML" title="{{.Title}}"><span class="t">{{.Title}}</span><span class="n">{{.Count}}</span></button></li>
+{{end}}
+
+{{define "list-body"}}{{template "list-head" .}}{{range .Rows}}{{template "row" .}}{{end}}{{template "list-foot" .}}{{end}}
+
+{{define "list-head"}}<table id="torrents" class="torrents" hx-sync="#list:replace">
+<colgroup><col class="w-sel"><col class="w-name"><col class="w-size"><col class="w-progress"><col class="w-state"><col class="w-status"><col class="w-rate"><col class="w-rate"><col class="w-ratio"><col class="w-label"><col class="w-tracker"><col class="w-added"></colgroup>
+<thead><tr><th class="sel"></th>{{range .Headers}}<th class="col-{{.Key}}{{if .Active}} sorted {{.Order}}{{end}}"><button type="button" hx-get="/torrents" hx-vals="{{.Vals}}" hx-include="#filters" hx-target="#torrents" hx-swap="outerHTML">{{.Title}}</button></th>{{end}}</tr></thead>
+<tbody hx-target="#detail" hx-swap="outerHTML">
+{{end}}
+
+{{define "row"}}<tr id="t-{{.Hash}}" class="st-{{.State}}{{if .Open}} open{{end}}{{if .Message}} haserror{{end}}" tabindex="0" hx-get="/torrents/{{.Hash}}" hx-trigger="click target:{td, td *}">
+<th class="sel"><input type="checkbox" name="h" value="{{.Hash}}" form="selection"></th>
+<td class="col-name" title="{{.Name}}">{{.Name}}</td>
+<td class="col-size num">{{bytes .Size}}</td>
+<td class="col-progress"><progress value="{{printf "%.1f" .Progress}}" max="100"></progress><span class="num">{{pct .Progress}}</span></td>
+<td class="col-state">{{.State.Label}}</td>
+<td class="col-status" title="{{.Status}}">{{.Status}}</td>
+<td class="col-down num">{{rate .DownRate}}</td>
+<td class="col-up num">{{rate .UpRate}}</td>
+<td class="col-ratio num">{{ratio .Ratio}}</td>
+<td class="col-label">{{.Label}}</td>
+<td class="col-tracker">{{.TrackerHost}}</td>
+<td class="col-added num">{{when .Added}}</td>
+</tr>
+{{end}}
+
+{{define "list-foot"}}{{if not .Rows}}<tr class="empty"><td colspan="12">{{if .Error}}Nothing to show.{{else}}No torrents match.{{end}}</td></tr>
+{{end}}</tbody>
+</table>{{end}}

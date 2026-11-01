@@ -1,0 +1,55 @@
+# Release: pushing a version tag (v1.2.3) tests the code, builds the image and
+# publishes it as ghcr.io/kabsdk/peerglass:1.2.3. In keeping with S7 it uses
+# no third-party actions: GitHub's own checkout, pinned by commit, and the
+# docker CLI on the runner. The run summary shows the digest to pin in
+# ../ansible-infrastructure.
+name: release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test
+        # `make check` in the Go image the Dockerfile builds with, by digest
+        run: |
+          go_image=$(sed -n 's/^FROM \(golang:[^ ]*\) AS build$/\1/p' Dockerfile)
+          test -n "$go_image"
+          docker run --rm -e GOFLAGS=-buildvcs=false -v "$PWD:/src" -w /src "$go_image" \
+            sh -c 'out=$(gofmt -l .); test -z "$out" || { echo "gofmt needed: $out"; exit 1; }; go vet ./... && go test ./...'
+
+      - name: Build
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          docker build \
+            --label "org.opencontainers.image.version=$version" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            -t "$IMAGE:$version" .
+
+      - name: Publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE:$VERSION"
+          digest=$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{.Manifest.Digest}}')
+          echo "Published $IMAGE:$VERSION@$digest"
+          {
+            echo "Published \`$IMAGE:$VERSION@$digest\`"
+            echo
+            echo "Pin it in ansible-infrastructure: \`torrent_peerglass_version: \"$VERSION\"\`, \`torrent_peerglass_digest: \"$digest\"\`."
+          } >> "$GITHUB_STEP_SUMMARY"

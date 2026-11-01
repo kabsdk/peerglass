@@ -1,0 +1,13 @@
+{{define "menu"}}<div class="menu-title">{{if gt .Count 1}}{{.Count}} selected torrents{{else}}{{.Name}}{{end}}</div>
+<div class="menu-items" hx-target="#flash" hx-include="#selection">
+<button type="button" hx-post="/actions/start" popovertarget="menu" popovertargetaction="hide">Start</button>
+<button type="button" hx-post="/actions/stop" popovertarget="menu" popovertargetaction="hide">Stop</button>
+<button type="button" hx-post="/actions/recheck" popovertarget="menu" popovertargetaction="hide">Recheck</button>
+<button type="button" hx-post="/actions/reannounce" popovertarget="menu" popovertargetaction="hide">Reannounce</button>
+<hr>
+<label class="menu-label">Label <select name="setlabel" hx-post="/actions/label" hx-trigger="change"><option value="">None</option>{{range .Labels}}<option value="{{.}}"{{if eq . $.Label}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+<hr>
+<button type="button" hx-post="/actions/remove" hx-confirm="{{if gt .Count 1}}Remove the {{.Count}} selected torrents from rTorrent? Their data stays on disk.{{else}}Remove this torrent from rTorrent? Its data stays on disk.{{end}}" popovertarget="menu" popovertargetaction="hide">Remove</button>
+<button type="button" class="danger" hx-post="/actions/remove-data" hx-confirm="{{if gt .Count 1}}Remove the {{.Count}} selected torrents AND DELETE their data from disk? This cannot be undone.{{else}}Remove this torrent AND DELETE its data from disk? This cannot be undone.{{end}}" popovertarget="menu" popovertargetaction="hide">Remove with data</button>
+</div>{{end}}
+{{define "menu-gone"}}<div class="menu-title">This torrent is no longer in rTorrent.</div>{{end}}

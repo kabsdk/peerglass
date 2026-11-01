@@ -1,0 +1,58 @@
+{{define "detail"}}{{template "detail-panel" .}}
+<input type="hidden" id="openstate" name="open" value="{{.Hash}}" hx-swap-oob="true">{{end}}
+
+{{define "detail-empty"}}{{template "detail-empty-panel" .}}
+<input type="hidden" id="openstate" name="open" value="" hx-swap-oob="true">{{end}}
+
+{{define "detail-empty-panel"}}<div id="detail" class="detail empty">{{if .Message}}{{.Message}}{{else}}Select a torrent to see its details.{{end}}</div>{{end}}
+
+{{define "detail-panel"}}<div id="detail" class="detail" hx-get="/torrents/{{.Hash}}?tab={{.Tab}}" hx-trigger="every 3s" hx-swap="outerHTML">
+<div class="detail-head">
+  <span class="title" title="{{.Torrent.Name}}">{{.Torrent.Name}}</span>
+  <span class="state st-{{.Torrent.State}}">{{.Torrent.State.Label}}</span>
+  <nav class="tabs">{{range .Tabs}}<button type="button" class="tab{{if .Active}} active{{end}}" hx-get="/torrents/{{$.Hash}}?tab={{.Key}}" hx-target="#detail" hx-swap="outerHTML">{{.Title}}</button>{{end}}</nav>
+  <button type="button" class="close" hx-get="/detail" hx-target="#detail" hx-swap="outerHTML" aria-label="Close">×</button>
+</div>
+<div class="tab-body">
+{{if eq .Tab "trackers"}}{{template "detail-trackers" .}}{{else if eq .Tab "files"}}{{template "detail-files" .}}{{else}}{{template "detail-general" .}}{{end}}
+</div>
+</div>{{end}}
+
+{{define "detail-general"}}{{with .Torrent}}<dl class="props">
+<dt>Status</dt><dd{{if .Message}} class="haserror"{{end}}>{{.Status}}</dd>
+<dt>Hash</dt><dd class="mono">{{.Hash}}</dd>
+<dt>Path</dt><dd class="mono">{{.Path}}</dd>
+{{if $.FinishedDir}}<dt>Label folder</dt><dd><span class="mono">{{$.FinishedDir}}</span> <span class="muted">— where a torrent in rTorrent's incomplete folder goes when it finishes</span></dd>{{end}}
+<dt>Size</dt><dd>{{bytes .Size}}{{if lt .Completed .Size}}, {{bytes .Completed}} done ({{pct .Progress}}){{end}}</dd>
+<dt>Ratio</dt><dd>{{ratio .Ratio}}</dd>
+<dt>Peers</dt><dd>{{.Peers}} connected: {{.Seeds}} seeds, {{.Leechers}} leechers</dd>
+<dt>Label</dt><dd>{{if .Label}}{{.Label}}{{else}}<span class="muted">none</span>{{end}}</dd>
+<dt>Added</dt><dd>{{if .Added.IsZero}}<span class="muted">unknown</span>{{else}}{{when .Added}}{{end}}</dd>
+<dt>Finished</dt><dd>{{if .Finished.IsZero}}<span class="muted">not yet</span>{{else}}{{when .Finished}}{{end}}</dd>
+<dt>Private</dt><dd>{{if .Private}}yes{{else}}no{{end}}</dd>
+<dt>Trackers</dt><dd>{{range .Trackers}}<div class="mono">{{.}}</div>{{else}}<span class="muted">none</span>{{end}}</dd>
+<dt>Message</dt><dd class="message">{{if .Message}}{{.Message}}{{else}}<span class="muted">none</span>{{end}}</dd>
+</dl>{{end}}{{end}}
+
+{{define "detail-trackers"}}<table class="sub">
+<thead><tr><th>Tracker</th><th>Enabled</th><th class="num">Announces OK</th><th class="num">Failed</th><th class="num">Seeders</th><th class="num">Leechers</th><th>Last announce</th><th>Last scrape</th></tr></thead>
+<tbody>{{range .Trackers}}<tr>
+<td class="mono">{{if .Origin}}{{.Origin}}{{else}}<span class="muted">(unreadable URL)</span>{{end}}</td>
+<td>{{if .Enabled}}yes{{else}}no{{end}}</td>
+<td class="num">{{.Success}}</td><td class="num">{{.Failed}}</td>
+<td class="num">{{.Seeders}}</td><td class="num">{{.Leechers}}</td>
+<td>{{with when .LastActivity}}{{.}}{{else}}<span class="muted">never</span>{{end}}</td>
+<td>{{with when .LastScrape}}{{.}}{{else}}<span class="muted">never</span>{{end}}</td>
+</tr>{{else}}<tr><td colspan="8" class="muted">No trackers.</td></tr>{{end}}</tbody>
+</table>
+{{if .Torrent.Message}}<p class="message haserror">{{.Torrent.Message}}</p>{{end}}{{end}}
+
+{{define "detail-files"}}<table class="sub">
+<thead><tr><th>Path</th><th class="num">Size</th><th>Progress</th><th>Priority</th></tr></thead>
+<tbody>{{range .Files}}<tr>
+<td class="mono">{{.Path}}</td>
+<td class="num">{{bytes .Size}}</td>
+<td class="col-progress"><progress value="{{printf "%.1f" .Progress}}" max="100"></progress><span class="num">{{pct .Progress}}</span></td>
+<td>{{.PriorityLabel}}</td>
+</tr>{{else}}<tr><td colspan="4" class="muted">No files yet (metadata not downloaded).</td></tr>{{end}}</tbody>
+</table>{{end}}

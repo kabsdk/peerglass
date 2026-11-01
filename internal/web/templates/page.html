@@ -1,0 +1,92 @@
+{{define "page"}}<!DOCTYPE html>
+<html lang="en"{{with .Theme}} data-theme="{{.}}"{{end}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"selfRequestsOnly":true,"includeIndicatorStyles":false,"historyEnabled":false,"refreshOnHistoryMiss":false,"defaultSettleDelay":0,"responseHandling":[{"code":".*","swap":true}]}'>
+<title>peerglass</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<script src="/static/htmx.min.js" defer></script>
+<script src="/static/rows.js" defer></script>
+<script src="/static/theme.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <h1>peerglass</h1>
+  <div id="totals" class="totals">{{template "totals" .List.Totals}}</div>
+  {{template "limits" .List.Totals.Limits}}
+  <button type="button" id="theme" title="Colour theme: the system's, light or dark">Theme: {{if eq .Theme "light"}}Light{{else if eq .Theme "dark"}}Dark{{else}}System{{end}}</button>
+  <details class="pop">
+    <summary>Add torrents</summary>
+    {{template "addform" .}}
+  </details>
+</header>
+
+<div class="main">
+<nav id="sidebar" class="sidebar" aria-label="Filters" hx-sync="#list:replace">{{template "sidebar-body" .List}}</nav>
+<div class="content">
+<div class="toolbar">
+  <form id="filters" class="filters" hx-get="/torrents" hx-trigger="submit" hx-target="#torrents" hx-swap="outerHTML" hx-include="#filters" hx-sync="#list:replace" autocomplete="off">
+    <input type="search" id="q" name="q" value="{{.List.Query.Search}}" placeholder="Search names" aria-label="Search" hx-get="/torrents" hx-trigger="input changed delay:100ms, search">
+    <span id="liststate">{{template "liststate" .List}}</span>
+    <input type="hidden" id="openstate" name="open" value="{{.Open}}">
+  </form>
+  <div class="actions">
+    <button type="button" data-select="all" title="Ctrl+A">Select all</button>
+    <button type="button" data-select="none">None</button>
+    <span id="selcount" class="selcount" aria-live="polite"></span>
+    <span class="sep"></span>
+    <button type="button" hx-post="/actions/start" hx-include="#selection" hx-target="#flash">Start</button>
+    <button type="button" hx-post="/actions/stop" hx-include="#selection" hx-target="#flash">Stop</button>
+    <button type="button" hx-post="/actions/recheck" hx-include="#selection" hx-target="#flash">Recheck</button>
+    <span class="sep"></span>
+    <form class="group" hx-post="/actions/label" hx-include="#selection" hx-target="#flash">
+      <select name="setlabel" aria-label="Label to set"><option value="">No label</option>{{range .Labels}}<option value="{{.}}">{{.}}</option>{{end}}</select>
+      <button type="submit">Set label</button>
+    </form>
+    <span class="sep"></span>
+    <button type="button" hx-post="/actions/remove" hx-confirm="Remove the selected torrents from rTorrent? Their data stays on disk." hx-include="#selection" hx-target="#flash">Remove</button>
+    <button type="button" class="danger" hx-post="/actions/remove-data" hx-confirm="Remove the selected torrents AND DELETE their data from disk? This cannot be undone." hx-include="#selection" hx-target="#flash">Remove with data</button>
+  </div>
+  <div id="flash" class="flash"></div>
+</div>
+
+<div id="banner">{{template "banner" .List}}</div>
+<div id="list" class="list" hx-get="/torrents" hx-trigger="every 2s, refresh from:body" hx-include="#filters" hx-target="#torrents" hx-swap="outerHTML">
+{{template "list-body" .List}}
+</div>
+{{if .Detail}}{{template "detail-panel" .Detail}}{{else}}{{template "detail-empty-panel" .Empty}}{{end}}
+</div>
+</div>
+<div id="menu" class="menu" popover></div>
+<form id="selection" hidden></form>
+</body>
+</html>
+{{end}}
+
+{{define "addform"}}<form id="addform" class="popform" hx-post="/actions/add" hx-encoding="multipart/form-data" hx-target="#flash">{{template "addform-fields" .}}</form>{{end}}
+{{define "addform-oob"}}<form id="addform" class="popform" hx-post="/actions/add" hx-encoding="multipart/form-data" hx-target="#flash" hx-swap-oob="true">{{template "addform-fields" .}}</form>{{end}}
+{{define "addform-fields"}}
+  <label>Torrent files <input type="file" name="torrent" accept=".torrent,application/x-bittorrent" multiple></label>
+  <label>Magnet link <input type="text" name="magnet" placeholder="magnet:?xt=urn:btih:…" spellcheck="false"></label>
+  <label>Label <select name="label"><option value="">None</option>{{range .Labels}}<option value="{{.}}">{{.}}</option>{{end}}</select></label>
+  <label>Save to <input type="text" name="path" placeholder="{{.Root}}/… (empty: rTorrent's default)" spellcheck="false"></label>
+  <label class="check"><input type="checkbox" name="start" value="1" checked> Start now</label>
+  <button type="submit">Add</button>
+{{end}}
+
+{{define "flash"}}{{if .Lines}}<div class="msg {{.Kind}}" role="status"><ul>{{range .Lines}}<li>{{.}}</li>{{end}}</ul><button type="button" class="close" hx-get="/flash" hx-target="#flash" aria-label="Dismiss">×</button></div>{{end}}{{if .ResetAdd}}{{template "addform-oob" .}}{{end}}{{with .Limits}}{{template "limits-oob" .}}{{end}}{{end}}
+
+{{define "limits"}}<details id="limits" class="pop">{{template "limits-body" .}}</details>{{end}}
+{{define "limits-oob"}}<details id="limits" class="pop" hx-swap-oob="true">{{template "limits-body" .}}</details>{{end}}
+{{define "limits-body"}}<summary>Speed limits</summary>
+<div hx-get="/limits" hx-trigger="toggle from:#limits" hx-target="#limitsform" hx-swap="outerHTML"></div>
+{{template "limitsform" .}}{{end}}
+{{define "limitsform"}}<form id="limitsform" class="popform" hx-post="/actions/limits" hx-target="#flash" hx-swap="innerHTML">
+  <label for="limit-down">Download</label><span><input type="number" id="limit-down" name="down" min="0" max="4194303" step="1" value="{{kib .Down}}" placeholder="unlimited"> KiB/s</span>
+  <label for="limit-up">Upload</label><span><input type="number" id="limit-up" name="up" min="0" max="4194303" step="1" value="{{kib .Up}}" placeholder="unlimited"> KiB/s</span>
+  <p class="note">Empty or 0 is unlimited. These last until rTorrent restarts; rtorrent.rc sets the limits it starts with.</p>
+  <div class="buttons"><button type="submit">Set</button><button type="submit" name="clear" value="1">Unlimited</button></div>
+</form>{{end}}
