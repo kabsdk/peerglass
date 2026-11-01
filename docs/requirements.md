@@ -14,10 +14,11 @@ Requirement IDs (F, S, N) are stable; refer to them in commits and tests.
 
 - One kind of user: an administrator, already authenticated by Authelia in
   front of the UI. peerglass has no login of its own.
-- It runs on app01 in the `rtorrent` Compose stack defined in
+- It runs on app01 in the `rtorrent` Compose stack,
   `../ansible-infrastructure/docker-compose/app01.infra.aslot-int.dk/rtorrent/`,
-  where it replaced ruTorrent. That stack contains gluetun (VPN), rTorrent
-  0.16.27 built from rakshasa's release tarballs, and peerglass.
+  where it replaced ruTorrent. The stack has three containers: gluetun (VPN
+  with kill switch), rTorrent 0.16.27 built from rakshasa's release tarballs
+  and sharing gluetun's network, and peerglass.
 - rTorrent is reached only through its SCGI Unix socket,
   `/run/rtorrent/rtorrent.sock` inside the containers.
 - About 825 torrents, nearly all private, most of them seeding. The UI must
@@ -157,7 +158,7 @@ peerglass must rely on these, not reimplement them:
 - **N4. Packaging.** A single static binary (`CGO_ENABLED=0`) in a distroless
   image. A version tag (`vX.Y.Z`) makes the release workflow test it and
   publish the public image `ghcr.io/kabsdk/peerglass:X.Y.Z`;
-  `../ansible-infrastructure` pins the version and digest.
+  `../ansible-infrastructure` pins the image by version and digest.
 - **N5. Browsers.** Current Firefox and Chromium on desktop. The UI must not
   break on a phone, but it doesn't have to be good there yet.
 - **N6. Looks.** Plain, dense and readable, closer to qBittorrent than to a

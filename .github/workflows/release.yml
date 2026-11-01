@@ -51,5 +51,7 @@ jobs:
           {
             echo "Published \`$IMAGE:$VERSION@$digest\`"
             echo
-            echo "Pin it in ansible-infrastructure: \`torrent_peerglass_version: \"$VERSION\"\`, \`torrent_peerglass_digest: \"$digest\"\`."
+            echo "To deploy, use this image line for the peerglass service in ansible-infrastructure's rtorrent stack and run the app01 play with \`--tags rtorrent\` (only peerglass is recreated):"
+            echo
+            echo "\`image: \"$IMAGE:$VERSION@$digest\"\`"
           } >> "$GITHUB_STEP_SUMMARY"

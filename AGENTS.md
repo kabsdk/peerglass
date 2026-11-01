@@ -11,10 +11,11 @@ defines what the UI does and, just as importantly, what it must never do.
 - **[docs/rtorrent.md](docs/rtorrent.md):** rTorrent's API as used here, and
   its quirks.
 - **[docs/testing.md](docs/testing.md):** what to test and how.
-- **`../ansible-infrastructure`:** how peerglass is deployed. The Compose
-  stack, the rTorrent image and `rtorrent.rc` all live in
-  `docker-compose/app01.infra.aslot-int.dk/rtorrent/`. This repository holds
-  the application and its Dockerfile only.
+- **`../ansible-infrastructure`:** how peerglass is deployed. It is one of
+  three containers, with gluetun and rTorrent, in the Compose stack
+  `docker-compose/app01.infra.aslot-int.dk/rtorrent/`, which also holds the
+  rTorrent image and `rtorrent.rc`. This repository holds the application and
+  its Dockerfile only.
 
 ## Ground rules
 
@@ -69,8 +70,9 @@ Run all commands from the repository root.
 
 Releases are version tags on `main` (`vX.Y.Z`): the release workflow tests,
 builds and publishes `ghcr.io/kabsdk/peerglass:X.Y.Z` and prints its digest.
-Tag only when the user asks; deploying means pinning that version and digest
-in `../ansible-infrastructure`.
+Tag only when the user asks. Deploying means pasting the image line from the
+run summary into the peerglass service of that stack and running the app01
+play with `--tags rtorrent`; compose recreates only peerglass.
 
 ## Working with the lab
 

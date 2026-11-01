@@ -101,8 +101,10 @@ destination is left out, and Remove with data reports rTorrent's error.
 Push a version tag on `main`, such as `v0.2.0`. The release workflow
 ([.github/workflows/release.yml](.github/workflows/release.yml)) runs the
 checks, builds the image and publishes `ghcr.io/kabsdk/peerglass:0.2.0`; its
-summary shows the digest. Our deployment, the `rtorrent` Compose stack in
-`ansible-infrastructure`, pins both the version and the digest.
+summary shows the image line to deploy, pinned by digest. Our deployment is one
+Compose stack in `ansible-infrastructure` with gluetun, rTorrent and peerglass;
+compose recreates only the containers that changed, so updating the UI never
+restarts rTorrent.
 
 ## Development
 
