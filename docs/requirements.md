@@ -156,9 +156,8 @@ peerglass must rely on these, not reimplement them:
   URLs and no magnet links (S5).
 - **N4. Packaging.** A single static binary (`CGO_ENABLED=0`) in a distroless
   image. A version tag (`vX.Y.Z`) makes the release workflow test it and
-  publish `ghcr.io/kabsdk/peerglass:X.Y.Z`, which is private;
-  `../ansible-infrastructure` pins the version and digest, and app01 pulls
-  with a read-only token.
+  publish the public image `ghcr.io/kabsdk/peerglass:X.Y.Z`;
+  `../ansible-infrastructure` pins the version and digest.
 - **N5. Browsers.** Current Firefox and Chromium on desktop. The UI must not
   break on a phone, but it doesn't have to be good there yet.
 - **N6. Looks.** Plain, dense and readable, closer to qBittorrent than to a
@@ -181,8 +180,8 @@ peerglass must rely on these, not reimplement them:
 
 ## 6. Decisions
 
-- peerglass replaced ruTorrent, on its port, so it answers on both
-  `torrent.aslot.dk` and `peerglass.aslot.dk`.
-- The repository and image are private.
+- peerglass replaced ruTorrent, on its port, and is reached as
+  `torrent.aslot.dk`.
+- The repository and image are public; deployments pin the image by digest.
 - F10 is in the first version; the `d.erase_with_data` method is in
   `rtorrent.rc` on app01.
